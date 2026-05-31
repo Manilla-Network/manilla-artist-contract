@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Mail, ShieldCheck, ChevronRight, ChevronLeft, Check, FileSignature, Sparkles, AlertTriangle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Mail, ShieldCheck, ChevronRight, ChevronLeft, Check, FileSignature, Sparkles, AlertTriangle, Download, Eraser, Pen, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitSignedContract } from "@/lib/contract.functions";
+import { downloadContractPdf } from "@/lib/contract-pdf";
+import { SignaturePadCanvas, type SignaturePadHandle } from "@/components/SignaturePadCanvas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
