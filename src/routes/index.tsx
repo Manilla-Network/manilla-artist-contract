@@ -311,7 +311,14 @@ function SignPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Enter the 6-digit code sent to {email}</Label>
-                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                    <InputOTP
+                      maxLength={6}
+                      value={otp}
+                      onChange={(v) => {
+                        setOtp(v);
+                        if (v.length === 6) verifyOtp(v);
+                      }}
+                    >
                       <InputOTPGroup>
                         {[0, 1, 2, 3, 4, 5].map((i) => (
                           <InputOTPSlot key={i} index={i} className="h-12 w-10 sm:w-12 text-lg" />
@@ -319,20 +326,31 @@ function SignPage() {
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
-                  <PrimaryButton onClick={verifyOtp} disabled={verifying || otp.length !== 6}>
+                  <PrimaryButton onClick={() => verifyOtp()} disabled={verifying || otp.length !== 6}>
                     {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     Verify & continue
                   </PrimaryButton>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpSent(false);
-                      setOtp("");
-                    }}
-                    className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
-                  >
-                    Wrong email? Change it
-                  </button>
+                  <div className="flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtp("");
+                        setResendIn(0);
+                      }}
+                      className="text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                    >
+                      Wrong email? Change it
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resendIn > 0 || sending}
+                      onClick={sendOtp}
+                      className="font-semibold text-primary disabled:text-muted-foreground disabled:cursor-not-allowed"
+                    >
+                      {resendIn > 0 ? `Resend in ${resendIn}s` : sending ? "Sending…" : "Resend code"}
+                    </button>
+                  </div>
                 </div>
               )}
             </section>
