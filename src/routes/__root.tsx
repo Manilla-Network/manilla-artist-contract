@@ -77,20 +77,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { name: "theme-color", content: "#0a0a0a" },
+      { title: "Manilla Collective — Exclusive 360° Artist Agreement" },
+      {
+        name: "description",
+        content:
+          "Sign the Manilla Collective Exclusive 360° Artist Agreement. Verified, secure, and binding — built by Africans for African artists going global.",
+      },
+      { name: "author", content: "Manilla Network · LILCKY STUDIO LIMITED" },
+      { property: "og:title", content: "Manilla Collective — Exclusive 360° Artist Agreement" },
+      {
+        property: "og:description",
+        content:
+          "A 360° partnership for African artists going global. Sign in 5 simple, secure steps.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { property: "og:image", content: "/manilla-logo.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Manilla Collective — Exclusive 360° Artist Agreement" },
+      { name: "twitter:image", content: "/manilla-logo.png" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/manilla-logo.png" },
+      { rel: "apple-touch-icon", href: "/manilla-logo.png" },
     ],
   }),
   shellComponent: RootShell,
