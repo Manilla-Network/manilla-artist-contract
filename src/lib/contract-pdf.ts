@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import logoDataUrl from "@/assets/manilla-logo.png";
+import { MANILLA_LOGO_DATA_URL as logoDataUrl } from "@/assets/manilla-logo-base64";
 
 export type ContractPdfData = {
   legal_name: string;
