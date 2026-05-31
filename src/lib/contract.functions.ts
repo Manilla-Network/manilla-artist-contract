@@ -216,13 +216,13 @@ export const submitSignedContract = createServerFn({ method: "POST" })
     // ---- Email delivery (independent of Lovable; reads env at runtime) ----
     // Required secrets — set in Cloudflare Pages/Worker env (and as GitHub
     // Actions secrets if you pipe them through CI):
-    //   RESEND_API_KEY   — your Resend API key
-    //   RESEND_FROM      — verified sender, e.g. "Manilla <contracts@manilla.network>"
+    //   RESEND_API_KEY   — your Resend API key (from GitHub → Cloudflare env)
+    //   RESEND_FROM      — verified sender; falls back to manilla@rald.cloud
     //   ADMIN_EMAIL      — defaults to ideamack@gmail.com if unset
     const apiKey = process.env.RESEND_API_KEY;
     const from =
       process.env.RESEND_FROM ||
-      "Manilla Collective <onboarding@resend.dev>";
+      "Manilla Collective <manilla@rald.cloud>";
     const adminEmail = process.env.ADMIN_EMAIL || "ideamack@gmail.com";
 
     let emailSentAt: string | null = null;
