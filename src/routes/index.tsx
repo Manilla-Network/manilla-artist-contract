@@ -432,20 +432,44 @@ function SignPage() {
                 <Summary label="Agreement" value="360° v1 — Manilla Collective" />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="sig">Type your full legal name to sign</Label>
-                <Input
-                  id="sig"
-                  value={signature}
-                  onChange={(e) => setSignature(e.target.value)}
-                  placeholder={artist.legal_name || "Your full legal name"}
-                  className="h-14 text-xl font-serif italic tracking-wide"
-                  style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}
-                />
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setSigMode("type")} className={`flex-1 h-10 rounded-lg border-2 text-sm font-semibold inline-flex items-center justify-center gap-2 transition ${sigMode === "type" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
+                    <Type className="h-4 w-4" /> Type
+                  </button>
+                  <button type="button" onClick={() => setSigMode("draw")} className={`flex-1 h-10 rounded-lg border-2 text-sm font-semibold inline-flex items-center justify-center gap-2 transition ${sigMode === "draw" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
+                    <Pen className="h-4 w-4" /> Draw
+                  </button>
+                </div>
+
+                <Label htmlFor="sig">Signature (must match your legal name)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="sig"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    placeholder={artist.legal_name || "Your full legal name"}
+                    className="h-14 text-xl font-serif italic tracking-wide"
+                    style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}
+                  />
+                  <Button type="button" variant="outline" onClick={() => setSignature(artist.legal_name)} className="h-14 px-3 text-xs whitespace-nowrap">
+                    Auto-fill
+                  </Button>
+                </div>
                 {signature && signature.trim().toLowerCase() !== artist.legal_name.trim().toLowerCase() && (
                   <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" /> Must exactly match your legal name
                   </p>
+                )}
+
+                {sigMode === "draw" && (
+                  <div className="space-y-2">
+                    <Label>Draw your signature below</Label>
+                    <SignaturePadCanvas ref={sigPadRef} onChange={setDrawnEmpty} />
+                    <button type="button" onClick={() => sigPadRef.current?.clear()} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+                      <Eraser className="h-3 w-3" /> Clear
+                    </button>
+                  </div>
                 )}
               </div>
 
