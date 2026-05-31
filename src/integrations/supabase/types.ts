@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      signed_contracts: {
+        Row: {
+          accepted_revenue_split: boolean
+          accepted_terms: boolean
+          address: string
+          agreement_version: string
+          created_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          legal_name: string
+          nationality: string
+          phone: string | null
+          signature_name: string
+          signed_at: string
+          stage_name: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_revenue_split?: boolean
+          accepted_terms?: boolean
+          address: string
+          agreement_version?: string
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          legal_name: string
+          nationality: string
+          phone?: string | null
+          signature_name: string
+          signed_at?: string
+          stage_name: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_revenue_split?: boolean
+          accepted_terms?: boolean
+          address?: string
+          agreement_version?: string
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          legal_name?: string
+          nationality?: string
+          phone?: string | null
+          signature_name?: string
+          signed_at?: string
+          stage_name?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
