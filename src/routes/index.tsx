@@ -53,6 +53,7 @@ function SignPage() {
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [resendIn, setResendIn] = useState(0);
 
   // Steps 2–5
   const [artist, setArtist] = useState<ArtistData>({
@@ -65,8 +66,13 @@ function SignPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedRevenue, setAcceptedRevenue] = useState(false);
   const [signature, setSignature] = useState("");
+  const [sigMode, setSigMode] = useState<"type" | "draw">("type");
+  const sigPadRef = useRef<SignaturePadHandle>(null);
+  const [drawnEmpty, setDrawnEmpty] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [completed, setCompleted] = useState<{ id: string; signed_at: string } | null>(null);
+  const [completed, setCompleted] = useState<
+    { id: string; signed_at: string; email_sent?: boolean; admin_email_sent?: boolean; email_error?: string | null } | null
+  >(null);
 
   const callSubmit = useServerFn(submitSignedContract);
 
@@ -77,6 +83,13 @@ function SignPage() {
       if (e) setVerifiedEmail(e);
     });
   }, []);
+
+  // Resend cooldown
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   const today = useMemo(
     () => new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }),
