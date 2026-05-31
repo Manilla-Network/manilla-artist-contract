@@ -81,16 +81,27 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
     }
   };
 
-  // Header
+  // Header — Manilla branded
   doc.setFillColor(10, 10, 10);
-  doc.rect(0, 0, pageW, 72, "F");
+  doc.rect(0, 0, pageW, 96, "F");
+  // Orange accent stripe
+  doc.setFillColor(255, 138, 61);
+  doc.rect(0, 96, pageW, 4, "F");
+  try {
+    doc.addImage(logoDataUrl, "PNG", margin, 18, 60, 60);
+  } catch {
+    /* logo optional */
+  }
   doc.setTextColor(255, 138, 61);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text("MANILLA NETWORK", margin, 32);
+  doc.text("MANILLA NETWORK", margin + 72, 38);
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
-  doc.text("Exclusive 360° Artist Agreement", margin, 54);
+  doc.text("Exclusive 360° Artist Agreement", margin + 72, 60);
+  doc.setTextColor(252, 217, 184);
+  doc.setFontSize(9);
+  doc.text("MANILLA COLLECTIVE · LAGOS", margin + 72, 76);
 
   y = 96;
   doc.setTextColor(20, 20, 20);
