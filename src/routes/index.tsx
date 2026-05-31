@@ -112,23 +112,26 @@ function SignPage() {
       return;
     }
     setOtpSent(true);
+    setResendIn(45);
     toast.success("Check your email for a 6-digit code");
   }
 
-  async function verifyOtp() {
-    if (otp.length !== 6) {
+  async function verifyOtp(codeOverride?: string) {
+    const code = (codeOverride ?? otp).trim();
+    if (code.length !== 6) {
       toast.error("Enter the 6-digit code");
       return;
     }
     setVerifying(true);
     const { data, error } = await supabase.auth.verifyOtp({
       email: email.trim(),
-      token: otp,
+      token: code,
       type: "email",
     });
     setVerifying(false);
     if (error || !data.session) {
       toast.error(error?.message || "Invalid code");
+      setOtp("");
       return;
     }
     setVerifiedEmail(data.session.user.email ?? email.trim());
@@ -149,14 +152,35 @@ function SignPage() {
     setStep(3);
   }
 
+  function previewPdf() {
+    downloadContractPdf({
+      legal_name: artist.legal_name || "[Artist Legal Name]",
+      stage_name: artist.stage_name || "[Stage Name]",
+      address: artist.address || "[Address]",
+      nationality: artist.nationality,
+      phone: artist.phone,
+      email: verifiedEmail ?? email ?? "[email]",
+      signature_name: signature || "[Unsigned]",
+      signature_data_url: sigMode === "draw" && !drawnEmpty ? sigPadRef.current?.toDataURL() : null,
+    });
+  }
+
   async function submit() {
     if (!acceptedTerms || !acceptedRevenue) {
       toast.error("You must accept all terms to sign");
       return;
     }
     if (signature.trim().toLowerCase() !== artist.legal_name.trim().toLowerCase()) {
-      toast.error("Signature must match your legal name exactly");
+      toast.error("Typed signature must exactly match your legal name");
       return;
+    }
+    let sigDataUrl = "";
+    if (sigMode === "draw") {
+      if (drawnEmpty || sigPadRef.current?.isEmpty()) {
+        toast.error("Please draw your signature");
+        return;
+      }
+      sigDataUrl = sigPadRef.current?.toDataURL() ?? "";
     }
     setSubmitting(true);
     try {
@@ -168,12 +192,22 @@ function SignPage() {
           nationality: artist.nationality,
           phone: artist.phone,
           signature_name: signature,
+          signature_data_url: sigDataUrl,
           accepted_terms: true,
           accepted_revenue_split: true,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale: navigator.language,
+          screen_resolution: `${window.screen.width}x${window.screen.height}@${window.devicePixelRatio || 1}x`,
+          referrer: document.referrer || "",
+          submission_origin: window.location.origin,
         },
       });
       setCompleted(res);
-      toast.success("Agreement signed and recorded");
+      if (res.email_sent) {
+        toast.success("Agreement signed. Confirmation email sent.");
+      } else {
+        toast.success("Agreement signed and recorded");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Submission failed");
     } finally {
@@ -182,7 +216,15 @@ function SignPage() {
   }
 
   if (completed) {
-    return <SuccessScreen artist={artist} completed={completed} email={verifiedEmail ?? email} />;
+    return (
+      <SuccessScreen
+        artist={artist}
+        completed={completed}
+        email={verifiedEmail ?? email}
+        signature={signature}
+        signatureDataUrl={sigMode === "draw" && !drawnEmpty ? sigPadRef.current?.toDataURL() ?? null : null}
+      />
+    );
   }
 
   return (
