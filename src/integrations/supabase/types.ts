@@ -19,17 +19,25 @@ export type Database = {
           accepted_revenue_split: boolean
           accepted_terms: boolean
           address: string
+          admin_email_sent_at: string | null
           agreement_version: string
           created_at: string
           email: string
+          email_sent_at: string | null
           id: string
           ip_address: string | null
           legal_name: string
+          locale: string | null
           nationality: string
           phone: string | null
+          referrer: string | null
+          screen_resolution: string | null
+          signature_data_url: string | null
           signature_name: string
           signed_at: string
           stage_name: string
+          submission_origin: string | null
+          timezone: string | null
           user_agent: string | null
           user_id: string
         }
@@ -37,17 +45,25 @@ export type Database = {
           accepted_revenue_split?: boolean
           accepted_terms?: boolean
           address: string
+          admin_email_sent_at?: string | null
           agreement_version?: string
           created_at?: string
           email: string
+          email_sent_at?: string | null
           id?: string
           ip_address?: string | null
           legal_name: string
+          locale?: string | null
           nationality: string
           phone?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          signature_data_url?: string | null
           signature_name: string
           signed_at?: string
           stage_name: string
+          submission_origin?: string | null
+          timezone?: string | null
           user_agent?: string | null
           user_id: string
         }
@@ -55,17 +71,25 @@ export type Database = {
           accepted_revenue_split?: boolean
           accepted_terms?: boolean
           address?: string
+          admin_email_sent_at?: string | null
           agreement_version?: string
           created_at?: string
           email?: string
+          email_sent_at?: string | null
           id?: string
           ip_address?: string | null
           legal_name?: string
+          locale?: string | null
           nationality?: string
           phone?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          signature_data_url?: string | null
           signature_name?: string
           signed_at?: string
           stage_name?: string
+          submission_origin?: string | null
+          timezone?: string | null
           user_agent?: string | null
           user_id?: string
         }
