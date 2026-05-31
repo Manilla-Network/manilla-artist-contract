@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_test_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          from_address: string | null
+          id: string
+          metadata: Json | null
+          provider_message_id: string | null
+          purpose: string
+          recipient: string
+          run_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          from_address?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_message_id?: string | null
+          purpose: string
+          recipient: string
+          run_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          from_address?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_message_id?: string | null
+          purpose?: string
+          recipient?: string
+          run_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       signed_contracts: {
         Row: {
           accepted_revenue_split: boolean

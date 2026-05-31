@@ -62,6 +62,7 @@ jobs:
           put_secret RESEND_API_KEY        "${{ secrets.RESEND_API_KEY }}"
           put_secret RESEND_FROM           "${{ secrets.RESEND_FROM }}"
           put_secret ADMIN_EMAIL           "${{ secrets.ADMIN_EMAIL }}"
+          put_secret EMAIL_TEST_TOKEN     "${{ secrets.EMAIL_TEST_TOKEN }}"
           put_secret SUPABASE_URL          "${{ secrets.SUPABASE_URL }}"
           put_secret SUPABASE_SERVICE_ROLE_KEY "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
           put_secret SUPABASE_PUBLISHABLE_KEY  "${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
