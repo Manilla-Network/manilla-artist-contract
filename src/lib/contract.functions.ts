@@ -35,30 +35,36 @@ function buildEmail(args: {
   ip: string | null;
   ua: string | null;
   forAdmin: boolean;
+  logoUrl: string;
 }) {
-  const { data, email, contractId, signedAt, ip, ua, forAdmin } = args;
+  const { data, email, contractId, signedAt, ip, ua, forAdmin, logoUrl } = args;
   const ref = contractId.slice(0, 8).toUpperCase();
   const subject = forAdmin
     ? `[Manilla Collective] New signed 360° agreement — ${data.stage_name} (${ref})`
-    : `Your Manilla Collective 360° Agreement — Reference ${ref}`;
+    : `Welcome to Manilla Collective — Your 360° Agreement (Ref ${ref})`;
 
   const artistGreeting = forAdmin
-    ? `<p>A new artist just signed the 360° Agreement.</p>`
-    : `<p>Hi <strong>${escapeHtml(data.stage_name)}</strong>,</p>
-       <p>Welcome to the family. Your <strong>Exclusive 360° Artist Agreement</strong> with Manilla Collective has been signed and securely recorded.</p>`;
+    ? `<p style="margin:0 0 12px;font-size:15px;color:#1a1a1a">A new artist has signed the <strong>Exclusive 360° Artist Agreement</strong>. Full signed contract attached as PDF.</p>`
+    : `<p style="margin:0 0 8px;font-size:16px;color:#1a1a1a">Hi <strong style="color:#c2410c">${escapeHtml(data.stage_name)}</strong>,</p>
+       <p style="margin:0 0 12px;font-size:15px;color:#1a1a1a;line-height:1.55">Welcome to the family. Your <strong>Exclusive 360° Artist Agreement</strong> with <strong>Manilla Collective</strong> has been signed and securely recorded on the Manilla Network. Your full signed contract is attached as a PDF for your records.</p>`;
 
   const html = `<!doctype html>
-<html><body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
-  <div style="max-width:600px;margin:0 auto;padding:24px">
-    <div style="background:linear-gradient(135deg,#0a0a0a,#1a1a1a);padding:28px 24px;border-radius:14px;text-align:center;color:#fff">
-      <div style="font-size:11px;letter-spacing:.3em;color:#ff8a3d;font-weight:700">MANILLA NETWORK</div>
-      <h1 style="margin:8px 0 0;font-size:22px">Exclusive 360° Artist Agreement</h1>
+<html><body style="margin:0;padding:0;background:#fff7ed;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
+  <div style="max-width:620px;margin:0 auto;padding:24px">
+    <div style="background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 55%,#3a1a05 100%);padding:32px 24px;border-radius:16px 16px 0 0;text-align:center;color:#fff;border-bottom:4px solid #ff8a3d">
+      <img src="${logoUrl}" alt="Manilla Network" width="84" height="84" style="display:block;margin:0 auto 12px;border-radius:14px;background:#fff;padding:6px" />
+      <div style="font-size:11px;letter-spacing:.35em;color:#ff8a3d;font-weight:800">MANILLA NETWORK</div>
+      <h1 style="margin:10px 0 0;font-size:22px;font-weight:700;letter-spacing:.01em">Exclusive 360° Artist Agreement</h1>
+      <div style="margin-top:6px;font-size:12px;color:#fcd9b8;letter-spacing:.15em">MANILLA COLLECTIVE · LAGOS</div>
     </div>
-    <div style="background:#fff;border:1px solid #eee;border-top:none;border-radius:0 0 14px 14px;padding:24px;margin-top:-2px">
+    <div style="background:#fff;border:1px solid #fed7aa;border-top:none;border-radius:0 0 16px 16px;padding:28px 24px;box-shadow:0 8px 24px rgba(194,65,12,.08)">
       ${artistGreeting}
-      <table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:12px">
+      <div style="margin:18px 0 8px;padding:14px 16px;background:linear-gradient(90deg,#fff7ed,#ffedd5);border-left:4px solid #ff8a3d;border-radius:6px">
+        <div style="font-size:10px;letter-spacing:.2em;color:#9a3412;font-weight:700">CONTRACT REFERENCE</div>
+        <div style="font-size:20px;font-weight:800;color:#0a0a0a;letter-spacing:.05em;margin-top:2px">${ref}</div>
+      </div>
+      <table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:14px">
         <tbody>
-          ${row("Reference", ref)}
           ${row("Legal name", data.legal_name)}
           ${row("Stage name", data.stage_name)}
           ${row("Email (verified)", email)}
@@ -66,25 +72,30 @@ function buildEmail(args: {
           ${row("Address", data.address)}
           ${data.phone ? row("Phone", data.phone) : ""}
           ${row("Signed at (UTC)", signedAt)}
-          ${row("Agreement", "360-v1")}
+          ${row("Agreement version", "360-v1")}
           ${forAdmin ? row("IP", ip ?? "—") : ""}
-          ${forAdmin ? row("User agent", ua ?? "—") : ""}
+          ${forAdmin ? row("User agent", (ua ?? "—").slice(0, 120)) : ""}
           ${forAdmin && data.timezone ? row("Timezone", data.timezone) : ""}
           ${forAdmin && data.locale ? row("Locale", data.locale) : ""}
           ${forAdmin && data.screen_resolution ? row("Screen", data.screen_resolution) : ""}
           ${forAdmin && data.submission_origin ? row("Origin", data.submission_origin) : ""}
         </tbody>
       </table>
+      <div style="margin-top:22px;padding:14px 16px;background:#0a0a0a;border-radius:10px;color:#fff;text-align:center">
+        <div style="font-size:11px;letter-spacing:.25em;color:#ff8a3d;font-weight:700">PDF ATTACHED</div>
+        <div style="font-size:13px;margin-top:4px;color:#fcd9b8">Your fully branded signed agreement is attached to this email.</div>
+      </div>
       ${
         forAdmin
           ? ""
-          : `<p style="margin-top:18px;font-size:14px">Our A&R and operations team will reach out within 48 hours to onboard you onto your dashboard.</p>
-             <p style="margin:6px 0 0;font-size:13px;color:#555">If you didn't sign this agreement, reply to this email immediately.</p>`
+          : `<p style="margin-top:18px;font-size:14px;color:#1a1a1a;line-height:1.6">Our A&R and operations team will reach out within <strong>48 hours</strong> to onboard you onto your artist dashboard.</p>
+             <p style="margin:8px 0 0;font-size:13px;color:#9a3412">If you didn't sign this agreement, reply to this email immediately.</p>`
       }
-      <p style="margin-top:24px;font-size:11px;color:#888;text-align:center;letter-spacing:.2em">
-        LILCKY STUDIO LIMITED · Lagos, Nigeria
+      <p style="margin-top:26px;font-size:11px;color:#9a3412;text-align:center;letter-spacing:.25em;font-weight:600">
+        LILCKY STUDIO LIMITED · LAGOS, NIGERIA
       </p>
     </div>
+    <p style="text-align:center;font-size:10px;color:#a8a29e;margin-top:14px;letter-spacing:.1em">© ${new Date().getFullYear()} Manilla Network · Manilla Collective</p>
   </div>
 </body></html>`;
 
@@ -103,6 +114,8 @@ function buildEmail(args: {
     forAdmin ? `IP: ${ip ?? "-"}` : ``,
     forAdmin ? `User agent: ${ua ?? "-"}` : ``,
     ``,
+    `Your full signed contract PDF is attached.`,
+    ``,
     `LILCKY STUDIO LIMITED — Lagos, Nigeria`,
   ]
     .filter(Boolean)
@@ -112,7 +125,7 @@ function buildEmail(args: {
 }
 
 function row(k: string, v: string) {
-  return `<tr><td style="padding:6px 0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:.08em;width:40%">${escapeHtml(k)}</td><td style="padding:6px 0;font-weight:600">${escapeHtml(v)}</td></tr>`;
+  return `<tr><td style="padding:7px 0;color:#9a3412;font-size:11px;text-transform:uppercase;letter-spacing:.1em;width:40%;font-weight:600;border-bottom:1px solid #fff7ed">${escapeHtml(k)}</td><td style="padding:7px 0;font-weight:600;color:#0a0a0a;border-bottom:1px solid #fff7ed">${escapeHtml(v)}</td></tr>`;
 }
 
 function escapeHtml(s: string) {
