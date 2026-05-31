@@ -103,7 +103,7 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
   doc.setFontSize(9);
   doc.text("MANILLA COLLECTIVE · LAGOS", margin + 72, 76);
 
-  y = 96;
+  y = 124;
   doc.setTextColor(20, 20, 20);
 
   const today =
