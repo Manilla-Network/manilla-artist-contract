@@ -655,7 +655,33 @@ function RevenueTable() {
   );
 }
 
-function SuccessScreen({ artist, completed, email }: { artist: ArtistData; completed: { id: string; signed_at: string }; email: string }) {
+function SuccessScreen({
+  artist,
+  completed,
+  email,
+  signature,
+  signatureDataUrl,
+}: {
+  artist: ArtistData;
+  completed: { id: string; signed_at: string; email_sent?: boolean; admin_email_sent?: boolean; email_error?: string | null };
+  email: string;
+  signature: string;
+  signatureDataUrl: string | null;
+}) {
+  const handleDownload = () => {
+    downloadContractPdf({
+      legal_name: artist.legal_name,
+      stage_name: artist.stage_name,
+      address: artist.address,
+      nationality: artist.nationality,
+      phone: artist.phone,
+      email,
+      signature_name: signature || artist.legal_name,
+      signature_data_url: signatureDataUrl,
+      reference: completed.id.slice(0, 8).toUpperCase(),
+      signed_at: completed.signed_at,
+    });
+  };
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
       <Toaster richColors position="top-center" />
@@ -673,8 +699,17 @@ function SuccessScreen({ artist, completed, email }: { artist: ArtistData; compl
           <Summary label="Email" value={email} />
           <Summary label="Agreement" value="360° v1" />
         </div>
-        <p className="mt-6 text-xs text-muted-foreground">
-          A copy will be delivered to your email. The Label team will reach out shortly to onboard you onto your dashboard.
+        <Button
+          onClick={handleDownload}
+          className="mt-6 w-full h-12 gap-2 text-primary-foreground border-0"
+          style={{ background: "var(--gradient-sunset)", boxShadow: "var(--shadow-glow)" }}
+        >
+          <Download className="h-4 w-4" /> Download signed PDF
+        </Button>
+        <p className="mt-4 text-xs text-muted-foreground">
+          {completed.email_sent
+            ? `A signed copy has been emailed to ${email}.`
+            : "Save your PDF now — email delivery is not configured on this server."}
         </p>
         <p className="mt-6 text-[10px] font-bold tracking-[0.3em] text-primary uppercase">Manilla Network · Lagos · Worldwide</p>
       </div>
