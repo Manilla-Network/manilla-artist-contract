@@ -231,13 +231,16 @@ export const submitSignedContract = createServerFn({ method: "POST" })
 
     if (apiKey) {
       const signedAtIso = new Date(row.signed_at).toISOString();
+      const userMsg = buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: false });
+      const adminMsg = buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: true });
       try {
         await sendResendEmail({
           apiKey,
           from,
           to: email,
-          subject: buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: false }).subject,
-          ...buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: false }),
+          subject: userMsg.subject,
+          html: userMsg.html,
+          text: userMsg.text,
           replyTo: adminEmail,
         });
         emailSentAt = new Date().toISOString();
@@ -250,8 +253,9 @@ export const submitSignedContract = createServerFn({ method: "POST" })
           apiKey,
           from,
           to: adminEmail,
-          subject: buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: true }).subject,
-          ...buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: true }),
+          subject: adminMsg.subject,
+          html: adminMsg.html,
+          text: adminMsg.text,
           replyTo: email,
         });
         adminEmailSentAt = new Date().toISOString();
