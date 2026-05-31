@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Mail, ShieldCheck, ChevronRight, ChevronLeft, Check, FileSignature, Sparkles, AlertTriangle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Mail, ShieldCheck, ChevronRight, ChevronLeft, Check, FileSignature, Sparkles, AlertTriangle, Download, Eraser, Pen, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitSignedContract } from "@/lib/contract.functions";
+import { downloadContractPdf } from "@/lib/contract-pdf";
+import { SignaturePadCanvas, type SignaturePadHandle } from "@/components/SignaturePadCanvas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +53,7 @@ function SignPage() {
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [resendIn, setResendIn] = useState(0);
 
   // Steps 2–5
   const [artist, setArtist] = useState<ArtistData>({
@@ -63,8 +66,13 @@ function SignPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedRevenue, setAcceptedRevenue] = useState(false);
   const [signature, setSignature] = useState("");
+  const [sigMode, setSigMode] = useState<"type" | "draw">("type");
+  const sigPadRef = useRef<SignaturePadHandle>(null);
+  const [drawnEmpty, setDrawnEmpty] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [completed, setCompleted] = useState<{ id: string; signed_at: string } | null>(null);
+  const [completed, setCompleted] = useState<
+    { id: string; signed_at: string; email_sent?: boolean; admin_email_sent?: boolean; email_error?: string | null } | null
+  >(null);
 
   const callSubmit = useServerFn(submitSignedContract);
 
@@ -75,6 +83,13 @@ function SignPage() {
       if (e) setVerifiedEmail(e);
     });
   }, []);
+
+  // Resend cooldown
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   const today = useMemo(
     () => new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }),
@@ -97,23 +112,26 @@ function SignPage() {
       return;
     }
     setOtpSent(true);
+    setResendIn(45);
     toast.success("Check your email for a 6-digit code");
   }
 
-  async function verifyOtp() {
-    if (otp.length !== 6) {
+  async function verifyOtp(codeOverride?: string) {
+    const code = (codeOverride ?? otp).trim();
+    if (code.length !== 6) {
       toast.error("Enter the 6-digit code");
       return;
     }
     setVerifying(true);
     const { data, error } = await supabase.auth.verifyOtp({
       email: email.trim(),
-      token: otp,
+      token: code,
       type: "email",
     });
     setVerifying(false);
     if (error || !data.session) {
       toast.error(error?.message || "Invalid code");
+      setOtp("");
       return;
     }
     setVerifiedEmail(data.session.user.email ?? email.trim());
@@ -134,14 +152,35 @@ function SignPage() {
     setStep(3);
   }
 
+  function previewPdf() {
+    downloadContractPdf({
+      legal_name: artist.legal_name || "[Artist Legal Name]",
+      stage_name: artist.stage_name || "[Stage Name]",
+      address: artist.address || "[Address]",
+      nationality: artist.nationality,
+      phone: artist.phone,
+      email: verifiedEmail ?? email ?? "[email]",
+      signature_name: signature || "[Unsigned]",
+      signature_data_url: sigMode === "draw" && !drawnEmpty ? sigPadRef.current?.toDataURL() : null,
+    });
+  }
+
   async function submit() {
     if (!acceptedTerms || !acceptedRevenue) {
       toast.error("You must accept all terms to sign");
       return;
     }
     if (signature.trim().toLowerCase() !== artist.legal_name.trim().toLowerCase()) {
-      toast.error("Signature must match your legal name exactly");
+      toast.error("Typed signature must exactly match your legal name");
       return;
+    }
+    let sigDataUrl = "";
+    if (sigMode === "draw") {
+      if (drawnEmpty || sigPadRef.current?.isEmpty()) {
+        toast.error("Please draw your signature");
+        return;
+      }
+      sigDataUrl = sigPadRef.current?.toDataURL() ?? "";
     }
     setSubmitting(true);
     try {
@@ -153,12 +192,22 @@ function SignPage() {
           nationality: artist.nationality,
           phone: artist.phone,
           signature_name: signature,
+          signature_data_url: sigDataUrl,
           accepted_terms: true,
           accepted_revenue_split: true,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale: navigator.language,
+          screen_resolution: `${window.screen.width}x${window.screen.height}@${window.devicePixelRatio || 1}x`,
+          referrer: document.referrer || "",
+          submission_origin: window.location.origin,
         },
       });
       setCompleted(res);
-      toast.success("Agreement signed and recorded");
+      if (res.email_sent) {
+        toast.success("Agreement signed. Confirmation email sent.");
+      } else {
+        toast.success("Agreement signed and recorded");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Submission failed");
     } finally {
@@ -167,7 +216,15 @@ function SignPage() {
   }
 
   if (completed) {
-    return <SuccessScreen artist={artist} completed={completed} email={verifiedEmail ?? email} />;
+    return (
+      <SuccessScreen
+        artist={artist}
+        completed={completed}
+        email={verifiedEmail ?? email}
+        signature={signature}
+        signatureDataUrl={sigMode === "draw" && !drawnEmpty ? sigPadRef.current?.toDataURL() ?? null : null}
+      />
+    );
   }
 
   return (
@@ -254,7 +311,14 @@ function SignPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Enter the 6-digit code sent to {email}</Label>
-                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                    <InputOTP
+                      maxLength={6}
+                      value={otp}
+                      onChange={(v) => {
+                        setOtp(v);
+                        if (v.length === 6) verifyOtp(v);
+                      }}
+                    >
                       <InputOTPGroup>
                         {[0, 1, 2, 3, 4, 5].map((i) => (
                           <InputOTPSlot key={i} index={i} className="h-12 w-10 sm:w-12 text-lg" />
@@ -262,20 +326,31 @@ function SignPage() {
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
-                  <PrimaryButton onClick={verifyOtp} disabled={verifying || otp.length !== 6}>
+                  <PrimaryButton onClick={() => verifyOtp()} disabled={verifying || otp.length !== 6}>
                     {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     Verify & continue
                   </PrimaryButton>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpSent(false);
-                      setOtp("");
-                    }}
-                    className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
-                  >
-                    Wrong email? Change it
-                  </button>
+                  <div className="flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtp("");
+                        setResendIn(0);
+                      }}
+                      className="text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                    >
+                      Wrong email? Change it
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resendIn > 0 || sending}
+                      onClick={sendOtp}
+                      className="font-semibold text-primary disabled:text-muted-foreground disabled:cursor-not-allowed"
+                    >
+                      {resendIn > 0 ? `Resend in ${resendIn}s` : sending ? "Sending…" : "Resend code"}
+                    </button>
+                  </div>
                 </div>
               )}
             </section>
@@ -308,8 +383,16 @@ function SignPage() {
 
           {step === 3 && (
             <section className="space-y-5">
-              <Heading n={3} title="Read the agreement" sub="Read carefully. This is a binding 360° partnership." />
+              <Heading n={3} title="Read the agreement" sub="Read carefully. Download a copy for your records." />
               <ContractBody legalName={artist.legal_name} stageName={artist.stage_name} address={artist.address} nationality={artist.nationality} today={today} />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={previewPdf}
+                className="w-full h-11 gap-2"
+              >
+                <Download className="h-4 w-4" /> Download preview PDF
+              </Button>
               <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-4 cursor-pointer hover:border-primary/40 transition">
                 <Checkbox checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(v === true)} className="mt-0.5" />
                 <span className="text-sm leading-relaxed">
@@ -349,20 +432,44 @@ function SignPage() {
                 <Summary label="Agreement" value="360° v1 — Manilla Collective" />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="sig">Type your full legal name to sign</Label>
-                <Input
-                  id="sig"
-                  value={signature}
-                  onChange={(e) => setSignature(e.target.value)}
-                  placeholder={artist.legal_name || "Your full legal name"}
-                  className="h-14 text-xl font-serif italic tracking-wide"
-                  style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}
-                />
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setSigMode("type")} className={`flex-1 h-10 rounded-lg border-2 text-sm font-semibold inline-flex items-center justify-center gap-2 transition ${sigMode === "type" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
+                    <Type className="h-4 w-4" /> Type
+                  </button>
+                  <button type="button" onClick={() => setSigMode("draw")} className={`flex-1 h-10 rounded-lg border-2 text-sm font-semibold inline-flex items-center justify-center gap-2 transition ${sigMode === "draw" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
+                    <Pen className="h-4 w-4" /> Draw
+                  </button>
+                </div>
+
+                <Label htmlFor="sig">Signature (must match your legal name)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="sig"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    placeholder={artist.legal_name || "Your full legal name"}
+                    className="h-14 text-xl font-serif italic tracking-wide"
+                    style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}
+                  />
+                  <Button type="button" variant="outline" onClick={() => setSignature(artist.legal_name)} className="h-14 px-3 text-xs whitespace-nowrap">
+                    Auto-fill
+                  </Button>
+                </div>
                 {signature && signature.trim().toLowerCase() !== artist.legal_name.trim().toLowerCase() && (
                   <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" /> Must exactly match your legal name
                   </p>
+                )}
+
+                {sigMode === "draw" && (
+                  <div className="space-y-2">
+                    <Label>Draw your signature below</Label>
+                    <SignaturePadCanvas ref={sigPadRef} onChange={setDrawnEmpty} />
+                    <button type="button" onClick={() => sigPadRef.current?.clear()} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+                      <Eraser className="h-3 w-3" /> Clear
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -548,7 +655,33 @@ function RevenueTable() {
   );
 }
 
-function SuccessScreen({ artist, completed, email }: { artist: ArtistData; completed: { id: string; signed_at: string }; email: string }) {
+function SuccessScreen({
+  artist,
+  completed,
+  email,
+  signature,
+  signatureDataUrl,
+}: {
+  artist: ArtistData;
+  completed: { id: string; signed_at: string; email_sent?: boolean; admin_email_sent?: boolean; email_error?: string | null };
+  email: string;
+  signature: string;
+  signatureDataUrl: string | null;
+}) {
+  const handleDownload = () => {
+    downloadContractPdf({
+      legal_name: artist.legal_name,
+      stage_name: artist.stage_name,
+      address: artist.address,
+      nationality: artist.nationality,
+      phone: artist.phone,
+      email,
+      signature_name: signature || artist.legal_name,
+      signature_data_url: signatureDataUrl,
+      reference: completed.id.slice(0, 8).toUpperCase(),
+      signed_at: completed.signed_at,
+    });
+  };
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
       <Toaster richColors position="top-center" />
@@ -566,8 +699,17 @@ function SuccessScreen({ artist, completed, email }: { artist: ArtistData; compl
           <Summary label="Email" value={email} />
           <Summary label="Agreement" value="360° v1" />
         </div>
-        <p className="mt-6 text-xs text-muted-foreground">
-          A copy will be delivered to your email. The Label team will reach out shortly to onboard you onto your dashboard.
+        <Button
+          onClick={handleDownload}
+          className="mt-6 w-full h-12 gap-2 text-primary-foreground border-0"
+          style={{ background: "var(--gradient-sunset)", boxShadow: "var(--shadow-glow)" }}
+        >
+          <Download className="h-4 w-4" /> Download signed PDF
+        </Button>
+        <p className="mt-4 text-xs text-muted-foreground">
+          {completed.email_sent
+            ? `A signed copy has been emailed to ${email}.`
+            : "Save your PDF now — email delivery is not configured on this server."}
         </p>
         <p className="mt-6 text-[10px] font-bold tracking-[0.3em] text-primary uppercase">Manilla Network · Lagos · Worldwide</p>
       </div>
