@@ -383,8 +383,16 @@ function SignPage() {
 
           {step === 3 && (
             <section className="space-y-5">
-              <Heading n={3} title="Read the agreement" sub="Read carefully. This is a binding 360° partnership." />
+              <Heading n={3} title="Read the agreement" sub="Read carefully. Download a copy for your records." />
               <ContractBody legalName={artist.legal_name} stageName={artist.stage_name} address={artist.address} nationality={artist.nationality} today={today} />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={previewPdf}
+                className="w-full h-11 gap-2"
+              >
+                <Download className="h-4 w-4" /> Download preview PDF
+              </Button>
               <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-4 cursor-pointer hover:border-primary/40 transition">
                 <Checkbox checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(v === true)} className="mt-0.5" />
                 <span className="text-sm leading-relaxed">
