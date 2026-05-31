@@ -247,8 +247,47 @@ export const submitSignedContract = createServerFn({ method: "POST" })
 
     if (apiKey) {
       const signedAtIso = new Date(row.signed_at).toISOString();
-      const userMsg = buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: false });
-      const adminMsg = buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: true });
+      const ref = row.id.slice(0, 8).toUpperCase();
+
+      // Build branded logo URL from request origin (served from /public)
+      const reqOrigin =
+        req?.headers.get("origin") ||
+        (req?.headers.get("referer")
+          ? new URL(req.headers.get("referer")!).origin
+          : "") ||
+        process.env.PUBLIC_SITE_URL ||
+        "";
+      const logoUrl = reqOrigin
+        ? `${reqOrigin.replace(/\/$/, "")}/manilla-logo.png`
+        : "https://manilla.network/manilla-logo.png";
+
+      // Generate the full branded, colored signed contract PDF on the server
+      let pdfBase64: string | null = null;
+      try {
+        const pdf = buildContractPdf({
+          legal_name: data.legal_name,
+          stage_name: data.stage_name,
+          address: data.address,
+          nationality: data.nationality,
+          phone: data.phone || undefined,
+          email,
+          signature_name: data.signature_name,
+          signature_data_url: data.signature_data_url || null,
+          reference: ref,
+          signed_at: signedAtIso,
+        });
+        pdfBase64 = pdf.output("datauristring").split(",")[1] ?? null;
+      } catch (e) {
+        console.error("[contract pdf] generation failed:", e);
+      }
+
+      const pdfFilename = `Manilla-360-Agreement-${ref}.pdf`;
+      const attachments = pdfBase64
+        ? [{ filename: pdfFilename, content: pdfBase64 }]
+        : undefined;
+
+      const userMsg = buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: false, logoUrl });
+      const adminMsg = buildEmail({ data, email, contractId: row.id, signedAt: signedAtIso, ip, ua, forAdmin: true, logoUrl });
       try {
         await sendResendEmail({
           apiKey,
@@ -258,6 +297,7 @@ export const submitSignedContract = createServerFn({ method: "POST" })
           html: userMsg.html,
           text: userMsg.text,
           replyTo: adminEmail,
+          attachments,
         });
         emailSentAt = new Date().toISOString();
       } catch (e) {
@@ -273,6 +313,7 @@ export const submitSignedContract = createServerFn({ method: "POST" })
           html: adminMsg.html,
           text: adminMsg.text,
           replyTo: email,
+          attachments,
         });
         adminEmailSentAt = new Date().toISOString();
       } catch (e) {
