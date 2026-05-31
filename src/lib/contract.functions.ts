@@ -147,6 +147,7 @@ async function sendResendEmail(opts: {
   html: string;
   text: string;
   replyTo?: string;
+  attachments?: Array<{ filename: string; content: string }>;
 }) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -161,6 +162,7 @@ async function sendResendEmail(opts: {
       html: opts.html,
       text: opts.text,
       reply_to: opts.replyTo,
+      attachments: opts.attachments,
     }),
   });
   if (!res.ok) {
