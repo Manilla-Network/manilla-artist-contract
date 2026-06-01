@@ -1,8 +1,16 @@
-# Manilla Network — Cloudflare Auto-Deploy
+# Manilla Network — Auto-Deploy (Cloudflare + Netlify)
 
 GitHub is the source of truth. Every push to `main` builds and deploys to
-**Cloudflare Pages** (project `manilla-contract`, auto-created on first run)
-via `.github/workflows/deploy-cloudflare.yml`.
+**both** hosts in parallel:
+
+- **Cloudflare Pages/Workers** — `.github/workflows/deploy-cloudflare.yml`
+  (project `manilla-contract`, auto-created on first run)
+- **Netlify** — `.github/workflows/deploy-netlify.yml` (uses Nitro's
+  `netlify` preset; see `netlify.toml`)
+
+Both targets build from the same `vite build` output — Nitro switches
+runtime via the `NITRO_PRESET` env var (`cloudflare-pages` by default,
+`netlify` in the Netlify workflow). No code changes between targets.
 
 ## Required GitHub Secrets
 
