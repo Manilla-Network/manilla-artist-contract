@@ -1,0 +1,43 @@
+## Netlify deployment for the Manilla 360° Agreement app
+## ------------------------------------------------------------
+## This project is a TanStack Start app built by Nitro. Nitro ships
+## a first-class `netlify` preset that emits Netlify Edge / Functions
+## from the same source as the Cloudflare Worker build — no code
+## changes needed. Setting NITRO_PRESET switches the output target.
+##
+## Required environment variables (set in Netlify dashboard or via
+## the GitHub Actions workflow — same names as Cloudflare):
+##   RESEND_API_KEY              — Resend API key
+##   RESEND_FROM                 — e.g. "Manilla Collective <manilla@rald.cloud>"
+##   ADMIN_EMAIL                 — defaults to ideamack@gmail.com
+##   SUPABASE_URL                — your Supabase project URL
+##   SUPABASE_SERVICE_ROLE_KEY   — service role key (server only)
+##   SUPABASE_PUBLISHABLE_KEY    — anon/publishable key
+##   VITE_SUPABASE_URL           — same as SUPABASE_URL (build-time)
+##   VITE_SUPABASE_PUBLISHABLE_KEY — same as SUPABASE_PUBLISHABLE_KEY (build-time)
+
+[build]
+  command = "bun run build"
+  publish = "dist"
+
+[build.environment]
+  NITRO_PRESET = "netlify"
+  NODE_VERSION = "20"
+
+# SPA / SSR fallback — Nitro's netlify preset registers the SSR
+# function automatically; this catch-all is a safety net for static
+# asset 404s during preview deploys.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = false
+
+[functions]
+  # Bundle all server function deps; Nitro handles the actual entry.
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/manilla-logo.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
