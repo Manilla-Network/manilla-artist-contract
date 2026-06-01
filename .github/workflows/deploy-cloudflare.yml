@@ -5,12 +5,17 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,49 +28,66 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build (TanStack Start → Cloudflare)
+      - name: Build (TanStack Start → Cloudflare Pages)
         env:
+          NITRO_PRESET: cloudflare-pages
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          # Expose admin email as VITE_ so the admin route can verify access client-side hint
+          VITE_ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL }}
         run: bun run build
 
-      # Deploys the built output to Cloudflare Pages.
-      # Project is auto-created on first run if it doesn't exist.
       - name: Deploy to Cloudflare Pages
+        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy ./dist --project-name=manilla-contract --branch=main
         env:
-          # Runtime secrets used by server functions (Resend + Supabase admin + audit emails)
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM: ${{ secrets.RESEND_FROM }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL }}
 
-      # Push runtime secrets to the Cloudflare Pages project so server functions
-      # (running on Cloudflare Workers) can read them via process.env.
-      - name: Sync runtime secrets to Cloudflare Pages
+      # Push every runtime secret into the Pages project so Cloudflare Workers
+      # (server functions) can read them via process.env at runtime.
+      - name: Sync runtime secrets → Cloudflare Pages
         if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         run: |
           set -e
           put_secret () {
             local name="$1"; local value="$2"
             if [ -z "$value" ]; then echo "skip $name (empty)"; return; fi
-            echo "$value" | bunx wrangler pages secret put "$name" \
+            printf '%s' "$value" | bunx wrangler pages secret put "$name" \
               --project-name=manilla-contract
           }
-          put_secret RESEND_API_KEY        "${{ secrets.RESEND_API_KEY }}"
-          put_secret RESEND_FROM           "${{ secrets.RESEND_FROM }}"
-          put_secret ADMIN_EMAIL           "${{ secrets.ADMIN_EMAIL }}"
-          put_secret EMAIL_TEST_TOKEN     "${{ secrets.EMAIL_TEST_TOKEN }}"
-          put_secret SUPABASE_URL          "${{ secrets.SUPABASE_URL }}"
+          put_secret RESEND_API_KEY           "${{ secrets.RESEND_API_KEY }}"
+          put_secret RESEND_FROM              "${{ secrets.RESEND_FROM }}"
+          put_secret ADMIN_EMAIL              "${{ secrets.ADMIN_EMAIL }}"
+          put_secret EMAIL_TEST_TOKEN         "${{ secrets.EMAIL_TEST_TOKEN }}"
+          put_secret SUPABASE_URL             "${{ secrets.SUPABASE_URL }}"
           put_secret SUPABASE_SERVICE_ROLE_KEY "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
           put_secret SUPABASE_PUBLISHABLE_KEY  "${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
+          put_secret PUBLIC_SITE_URL           "${{ secrets.PUBLIC_SITE_URL }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Write deployment URL to GitHub Step Summary for easy access
+      - name: Write deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 Cloudflare Pages Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Project | \`manilla-contract\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Site URL | ${{ secrets.PUBLIC_SITE_URL || 'https://manilla-contract.pages.dev' }} |" >> $GITHUB_STEP_SUMMARY

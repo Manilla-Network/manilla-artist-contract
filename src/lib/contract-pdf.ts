@@ -8,6 +8,21 @@ export type ContractPdfData = {
   nationality: string;
   phone?: string;
   email: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  date_of_birth?: string;
+  genre?: string;
+  years_active?: number;
+  bio?: string;
+  spotify_url?: string | null;
+  apple_music_url?: string | null;
+  audiomack_url?: string | null;
+  boomplay_url?: string | null;
+  youtube_url?: string | null;
+  tiktok_url?: string | null;
+  instagram_url?: string | null;
+  website_url?: string | null;
   signature_name: string;
   signature_data_url?: string | null;
   reference?: string;
@@ -46,7 +61,7 @@ const CLAUSES: Array<[string, string]> = [
   ],
   [
     "6. Revenue Splits",
-    "Splits apply after recoupment of agreed advanceable and recoupable costs. See revenue table.",
+    "Splits apply after recoupment of agreed advanceable and recoupable costs. See revenue table below.",
   ],
   [
     "7. Publishing Administration",
@@ -81,16 +96,14 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
     }
   };
 
-  // Header — Manilla branded
+  // ── Header ──
   doc.setFillColor(10, 10, 10);
   doc.rect(0, 0, pageW, 96, "F");
-  // Orange accent stripe
   doc.setFillColor(255, 138, 61);
   doc.rect(0, 96, pageW, 4, "F");
   try {
     doc.addImage(logoDataUrl, "PNG", margin, 18, 60, 60);
   } catch {
-    /* logo optional */
   }
   doc.setTextColor(255, 138, 61);
   doc.setFont("helvetica", "bold");
@@ -106,21 +119,33 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
   y = 124;
   doc.setTextColor(20, 20, 20);
 
-  const today =
-    data.signed_at
-      ? new Date(data.signed_at).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        })
-      : new Date().toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        });
+  const today = data.signed_at
+    ? new Date(data.signed_at).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : new Date().toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+
+  // Application ID prominence
+  if (data.reference) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(194, 65, 12);
+    doc.text("APPLICATION ID:", margin, y);
+    doc.setTextColor(10, 10, 10);
+    doc.setFontSize(13);
+    doc.text(data.reference, margin + 110, y);
+    y += 18;
+  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
+  doc.setTextColor(20, 20, 20);
   doc.text(`Effective Date: ${today}`, margin, y);
   y += 14;
   doc.setFont("helvetica", "normal");
@@ -131,29 +156,107 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
   doc.text(intro, margin, y);
   y += intro.length * 12 + 8;
 
-  // Parties block
+  // ── Artist Identity block ──
   doc.setDrawColor(255, 138, 61);
   doc.setLineWidth(2);
-  doc.line(margin, y, margin + 4, y + 60);
-  const lines = [
-    `Legal Name:    ${data.legal_name}`,
-    `Stage Name:    ${data.stage_name}`,
-    `Address:       ${data.address}`,
-    `Nationality:   ${data.nationality}`,
-    `Email:         ${data.email}`,
-    ...(data.phone ? [`Phone:         ${data.phone}`] : []),
-    ...(data.reference ? [`Reference:     ${data.reference}`] : []),
+
+  const identityLines = [
+    `Legal Name:     ${data.legal_name}`,
+    `Stage Name:     ${data.stage_name}`,
+    `City:           ${data.city ?? ""}`,
+    `State:          ${data.state ?? ""}`,
+    `Country:        ${data.country ?? data.nationality}`,
+    `Date of Birth:  ${data.date_of_birth ?? ""}`,
+    `Email:          ${data.email}`,
+    ...(data.phone ? [`Phone:          ${data.phone}`] : []),
   ];
+
+  const blockHeight = identityLines.length * 12 + 8;
+  doc.line(margin, y, margin + 4, y + blockHeight);
+
   doc.setFontSize(10);
   let py = y + 4;
-  for (const l of lines) {
+  for (const l of identityLines) {
     const wrapped = doc.splitTextToSize(l, maxW - 14);
     doc.text(wrapped, margin + 14, py);
     py += wrapped.length * 12;
   }
   y = py + 8;
 
-  // Clauses
+  // ── Artist Profile block ──
+  if (data.genre || data.years_active !== undefined) {
+    ensureSpace(60);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(10, 10, 10);
+    doc.text("Artist Profile", margin, y);
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+
+    const profileLines = [
+      ...(data.genre ? [`Genre:         ${data.genre}`] : []),
+      ...(data.years_active !== undefined
+        ? [`Years Active:  ${data.years_active}`]
+        : []),
+    ];
+    for (const l of profileLines) {
+      ensureSpace(14);
+      doc.text(l, margin, y);
+      y += 13;
+    }
+
+    if (data.bio) {
+      ensureSpace(20);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(120, 80, 0);
+      doc.text("Bio:", margin, y);
+      y += 12;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(40, 40, 40);
+      const bioLines = doc.splitTextToSize(data.bio, maxW);
+      ensureSpace(bioLines.length * 12 + 4);
+      doc.text(bioLines, margin, y);
+      y += bioLines.length * 12 + 8;
+    }
+
+    const socialLinks: Array<[string, string | null | undefined]> = [
+      ["Spotify", data.spotify_url],
+      ["Apple Music", data.apple_music_url],
+      ["Audiomack", data.audiomack_url],
+      ["Boomplay", data.boomplay_url],
+      ["YouTube", data.youtube_url],
+      ["TikTok", data.tiktok_url],
+      ["Instagram", data.instagram_url],
+      ["Website", data.website_url],
+    ].filter(([, v]) => v) as Array<[string, string]>;
+
+    if (socialLinks.length) {
+      ensureSpace(16 + socialLinks.length * 12);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(120, 80, 0);
+      doc.text("Social & Streaming:", margin, y);
+      y += 12;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(40, 40, 40);
+      for (const [platform, url] of socialLinks) {
+        const line = `${platform.padEnd(14)}: ${url}`;
+        const wrapped = doc.splitTextToSize(line, maxW);
+        ensureSpace(wrapped.length * 11);
+        doc.text(wrapped, margin, y);
+        y += wrapped.length * 11;
+      }
+      y += 6;
+    }
+  }
+
+  doc.setTextColor(20, 20, 20);
+
+  // ── Clauses ──
   for (const [title, body] of CLAUSES) {
     ensureSpace(60);
     doc.setFont("helvetica", "bold");
@@ -170,7 +273,7 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
     y += wrapped.length * 12 + 10;
   }
 
-  // Revenue table
+  // ── Revenue table ──
   ensureSpace(40 + REVENUE.length * 18);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -199,10 +302,11 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
   });
   y += 16;
 
-  // Signature
+  // ── Signature block ──
   ensureSpace(120);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
+  doc.setTextColor(10, 10, 10);
   doc.text("Artist Signature", margin, y);
   y += 12;
   doc.setDrawColor(180, 180, 180);
@@ -211,18 +315,21 @@ export function buildContractPdf(data: ContractPdfData): jsPDF {
     try {
       doc.addImage(data.signature_data_url, "PNG", margin, y, 240, 50);
     } catch {
-      /* ignore */
     }
   }
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(12);
+  doc.setFontSize(14);
+  doc.setTextColor(10, 10, 10);
   doc.text(data.signature_name, margin, y + 64);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(120, 120, 120);
   doc.text(`Signed: ${today}`, margin, y + 78);
+  if (data.reference) {
+    doc.text(`Ref: ${data.reference}`, margin, y + 90);
+  }
 
-  // Footer
+  // ── Page footers ──
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
