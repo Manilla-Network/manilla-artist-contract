@@ -20,6 +20,11 @@ Add these in **GitHub → Settings → Secrets and variables → Actions**:
 - `CLOUDFLARE_API_TOKEN` — token with `Pages:Edit` permission
 - `CLOUDFLARE_ACCOUNT_ID`
 
+### Netlify
+- `NETLIFY_AUTH_TOKEN` — personal access token (User Settings → Applications)
+- `NETLIFY_SITE_ID` — from Site Settings → General → Site information
+  (create an empty site once; the workflow handles every deploy after)
+
 ### Supabase (build + runtime)
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
