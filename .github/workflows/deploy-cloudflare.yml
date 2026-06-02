@@ -5,9 +5,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: cloudflare-${{ github.ref }}
   cancel-in-progress: true
+
+# PREREQUISITE: The CLOUDFLARE_API_TOKEN secret must have these permissions:
+#   - Account > Cloudflare Pages > Edit
+#   - Account > Account Settings > Read
+# Without "Cloudflare Pages:Edit" the deploy will fail with auth error 10000.
+# Create/fix the token at: https://dash.cloudflare.com/profile/api-tokens
 
 jobs:
   deploy:
