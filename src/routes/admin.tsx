@@ -732,7 +732,6 @@ function ContractsTab({
             </div>
           )}
         </div>
-      </main>
 
       {/* Detail Sheet */}
       <Sheet open={!!selectedId} onOpenChange={(o) => { if (!o) { setSelectedId(null); setDetail(null); } }}>
