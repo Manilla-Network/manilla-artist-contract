@@ -10,7 +10,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAIL ?? "ideamack@gmail.com")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-function requireAdmin(email: string): void {
+export function requireAdmin(email: string): void {
   if (!email || !ADMIN_EMAILS.includes(email.toLowerCase())) {
     throw new Error("Access denied: not an administrator");
   }
