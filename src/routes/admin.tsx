@@ -5,6 +5,7 @@ import {
   Loader2, Search, RefreshCw, ChevronLeft, ChevronRight,
   Eye, Send, CheckCircle2, XCircle, Clock, Users, FileText,
   BarChart3, LogOut, Shield, Download, History, User, Music, Globe,
+  LayoutDashboard, Building2, MessageSquare, Activity, ToggleLeft,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -28,6 +29,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast, Toaster } from "sonner";
 import logo from "@/assets/manilla-logo.png";
+import { OverviewTab } from "@/components/admin/OverviewTab";
+import { ReleasesTab } from "@/components/admin/ReleasesTab";
+import { ArtistsTab } from "@/components/admin/ArtistsTab";
+import { LabelsTab } from "@/components/admin/LabelsTab";
+import { SupportTab } from "@/components/admin/SupportTab";
+import { HealthTab } from "@/components/admin/HealthTab";
+import { FeatureFlagsTab } from "@/components/admin/FeatureFlagsTab";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -142,7 +150,7 @@ function AdminPage() {
   }
 
   return (
-    <AdminDashboard
+    <AdminControlPlane
       sessionToken={sessionToken}
       sessionEmail={sessionEmail}
       onAdminError={handleAdminError}
@@ -280,7 +288,88 @@ function AdminLogin() {
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
 
-function AdminDashboard({
+// ── Admin Control Plane (8-tab wrapper) ─────────────────────────────────────
+
+const CP_TABS = [
+  { value: "overview", label: "Overview", Icon: LayoutDashboard },
+  { value: "contracts", label: "Contracts", Icon: FileText },
+  { value: "releases", label: "Releases", Icon: Music },
+  { value: "artists", label: "Artists", Icon: Users },
+  { value: "labels", label: "Labels", Icon: Building2 },
+  { value: "support", label: "Support", Icon: MessageSquare },
+  { value: "health", label: "Health", Icon: Activity },
+  { value: "flags", label: "Feature Flags", Icon: ToggleLeft },
+] as const;
+
+type CPTab = (typeof CP_TABS)[number]["value"];
+
+function AdminControlPlane({
+  sessionToken, sessionEmail, onAdminError,
+}: {
+  sessionToken: string;
+  sessionEmail: string;
+  onAdminError: (e: Error) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<CPTab>("overview");
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Toaster richColors position="top-center" />
+
+      {/* Top nav */}
+      <header className="border-b border-border bg-card sticky top-0 z-30">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Manilla" className="h-8 w-8" />
+            <div>
+              <span className="font-bold text-sm tracking-wide">Manilla Collective</span>
+              <span className="ml-2 text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Admin</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:block text-xs text-muted-foreground">{sessionEmail}</span>
+            <Button variant="ghost" size="sm" onClick={() => supabase.auth.signOut()} className="gap-1.5">
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </Button>
+          </div>
+        </div>
+
+        {/* Tab navigation */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 border-t border-border">
+          <nav className="flex gap-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {CP_TABS.map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setActiveTab(value)}
+                style={{ borderBottomWidth: 2, borderBottomStyle: "solid", borderBottomColor: activeTab === value ? "var(--primary)" : "transparent" }}
+                className={"flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition " + (activeTab === value ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+        {activeTab === "overview" && <OverviewTab onTabChange={(tab) => setActiveTab(tab as CPTab)} />}
+        {activeTab === "contracts" && (
+          <ContractsTab sessionToken={sessionToken} sessionEmail={sessionEmail} onAdminError={onAdminError} />
+        )}
+        {activeTab === "releases" && <ReleasesTab />}
+        {activeTab === "artists" && <ArtistsTab />}
+        {activeTab === "labels" && <LabelsTab />}
+        {activeTab === "support" && <SupportTab />}
+        {activeTab === "health" && <HealthTab />}
+        {activeTab === "flags" && <FeatureFlagsTab />}
+      </main>
+    </div>
+  );
+}
+
+function ContractsTab({
   sessionToken, sessionEmail, onAdminError,
 }: {
   sessionToken: string;
@@ -426,29 +515,7 @@ function AdminDashboard({
   const app = detail?.application;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Toaster richColors position="top-center" />
-
-      {/* Top nav */}
-      <header className="border-b border-border bg-card sticky top-0 z-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Manilla" className="h-8 w-8" />
-            <div>
-              <span className="font-bold text-sm tracking-wide">Manilla Collective</span>
-              <span className="ml-2 text-xs text-muted-foreground">Admin</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-xs text-muted-foreground">{sessionEmail}</span>
-            <Button variant="ghost" size="sm" onClick={() => supabase.auth.signOut()} className="gap-1.5">
-              <LogOut className="h-3.5 w-3.5" /> Sign out
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 space-y-6">
+    <div className="space-y-6">
 
         {/* Stats bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
