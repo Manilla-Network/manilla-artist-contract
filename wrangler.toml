@@ -2,3 +2,7 @@ name = "manilla-contract"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./dist"
+
+# ── Security Headers (via Cloudflare Pages _headers file) ─────────────────────
+# Note: Cloudflare Pages reads security headers from public/_headers
+# The _headers file is generated at build time. See SECURITY/final-security-audit.md
