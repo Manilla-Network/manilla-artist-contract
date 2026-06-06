@@ -13,38 +13,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          version: 10
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
+          bun-version: latest
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run ESLint
-        run: pnpm run lint
+        run: bun run lint
 
-  typecheck:
-    name: Typecheck
+  build:
+    name: Build (type-check)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          version: 10
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
+          bun-version: latest
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
-      - name: TypeScript typecheck
-        run: pnpm run typecheck
+      - name: Build dev (generates route types + catches type errors)
+        env:
+          NITRO_PRESET: cloudflare-pages
+        run: bun run build:dev
